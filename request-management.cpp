@@ -29,14 +29,12 @@ typedef struct
   char client_name[50];
 } RequestHeader;
 
-int isPogramRun = 1;
-
 void mainMenuRender();
 bool insertProduct();
 void readProducts();
 Product getProductById(int id, bool shouldPrint);
 int returnLastId(char *fileName, int fileType);
-RequestItem setRequestItemToObject();
+RequestItem setRequestItemToObject(int lastItemId);
 void saveRequestItems();
 bool insertRequestItem(RequestItem newReqItem);
 bool insertRequestHeader(RequestItem* requestItems, int totalItemLength);
@@ -45,11 +43,15 @@ void readRequestHeaders();
 
 int main(void)
 {
-	/*insertProduct();
-	saveRequestItems();
-	readRequestHeaders();*/
-	readProducts();
-	//readRequestItemByHeaderId(1);
+	//saveRequestItems();
+	readRequestItemByHeaderId(1);
+	//
+	/*readRequestHeaders();
+	*/
+	/*
+	
+*/
+	//;
   
 	return 0;
 }
@@ -75,15 +77,15 @@ bool insertProduct() {
 	
 	Product newProduct;
 	
+	newProduct.id = returnLastId("product_data.bin", 1) + 1;
+
 	productFile = fopen("product_data.bin", "a+");
 	
 	if (productFile == NULL){
 		printf("erro");
 		return false;
 	}
-	
-	newProduct.id = returnLastId("product_data.bin", 1) + 1;
-	
+
 	printf("Insira o nome do Produto: ");
 	scanf("%s", newProduct.name);
 	printf("\n\nInsira a descricao do Produto: ");
@@ -102,7 +104,7 @@ bool insertProduct() {
 
 	system("cls");
 	printf("Produto adicionado com sucesso!");
-	Sleep(500);
+	Sleep(1000);
 	system("cls");
 	
 	return true;
@@ -112,10 +114,10 @@ bool insertProduct() {
 * Função que salva informações da em uma instancia da struct RequestItem
 * @returns RequestItem
 */
-RequestItem setRequestItemToObject() {
+RequestItem setRequestItemToObject(int lastItemId) {
 	RequestItem newReqItem;
 
-	newReqItem.id = returnLastId("requests_item_data.bin", 2) + 1;
+	newReqItem.id = lastItemId;
 	newReqItem.id_h_product = returnLastId("requests_header_data.bin", 2) + 1;
 
 	printf("Insira o Id do Produto: ");
@@ -126,7 +128,6 @@ RequestItem setRequestItemToObject() {
 	Product product = getProductById(newReqItem.id_product, false);
 	
 	newReqItem.total_price = product.price * newReqItem.amount;
-	
 
 	return newReqItem;
 }
@@ -142,9 +143,11 @@ void saveRequestItems() {
 	RequestItem* requestItensToAdd;
 
 	requestItensToAdd = (RequestItem*)malloc(sizeof(RequestItem));
+	
+	int lastItemId = returnLastId("requests_item_data.bin", 2) + 1;
 
 	while (loopRunning > 0) {
-		RequestItem reqItem = setRequestItemToObject();
+		RequestItem reqItem = setRequestItemToObject(lastItemId);
 
 		requestItensToAdd[currentItem].id = reqItem.id;
 		requestItensToAdd[currentItem].id_h_product = reqItem.id_h_product;
@@ -161,6 +164,7 @@ void saveRequestItems() {
 		if (pressedKey == 49) {
 			system("cls");
 			currentItem++;
+			lastItemId++;
 			requestItensToAdd = (RequestItem*)realloc(requestItensToAdd, sizeof(RequestItem) * currentItem + 1);
 			continue;
 		}
@@ -174,7 +178,7 @@ void saveRequestItems() {
 			system("cls");
 			loopRunning = 0;
 			printf("Pedido cadastrado com sucesso!");
-			Sleep(500);
+			Sleep(1000);
 			system("cls");
 		}
 	}
@@ -233,6 +237,8 @@ bool insertRequestItem(RequestItem newReqItem) {
 		return false;
 	}
 
+	printf("Amount: %d", newReqItem.amount);
+
 	int writeAction = fwrite(&newReqItem, sizeof(RequestItem), 1, requestItemFile);
 
 	if (writeAction == 0) {
@@ -261,7 +267,7 @@ void readProducts() {
     }
      
     while(fread(&product, sizeof(Product), 1, productFile))
-        printf ("%d %s %s %.2f\n", 
+        printf ("Id: %d | Nome do Produto: %s | Descrição: %s | Preço: R$ %.2f\n", 
 				product.id,
         		product.name, 
 				product.desc,
@@ -304,7 +310,7 @@ void readRequestItemByHeaderId(int headerId) {
 	FILE* requestItemFile;
 	RequestItem requestItem;
 
-	requestItemFile = fopen("product_data.bin", "r");
+	requestItemFile = fopen("requests_item_data.bin", "r");
 
 	if (requestItemFile == NULL)
 	{
@@ -381,7 +387,7 @@ RequestItem getRequestItemById(int id, bool shouldPrint) {
 	while (fread(&requestItem, sizeof(RequestItem), 1, requestItemFile)) {
 		if (id == requestItem.id && shouldPrint == true) {
 			Product product = getProductById(requestItem.id_product, false);
-			printf("%d %d %d %s %d R$%.2f\n",
+			printf("Id: %d | Id do Pedido: %d | Id do Produto: %d | Nome do Produto: %s | Quantidade: %d | R$%.2f\n",
 				requestItem.id,
 				requestItem.id_h_product,
 				requestItem.id_product,
@@ -410,7 +416,6 @@ int returnLastId(char *fileName, int fileType) {
 	
 	if (fileToRead == NULL)
     {
-        //printf("\nErro ao abrir o arquivo.\n");
         return 0;
     }
 	
