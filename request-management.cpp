@@ -25,7 +25,7 @@ typedef struct
 typedef struct
 {
   int id;
-  int total_price;
+  float total_price;
   char client_name[50];
 } RequestHeader;
 
@@ -41,6 +41,13 @@ bool insertRequestHeader(RequestItem* requestItems, int totalItemLength);
 void readRequestItemByHeaderId(int headerId);
 void readRequestHeaders();
 RequestHeader getRequestHeaderById(int id, bool shouldPrint);
+bool updateProduct();
+int getTotalFileLength(char* fileName, int fileType);
+bool updateRequestItem(int requestHeaderId);
+bool updateRequestHeader(int requestHeaderId);
+bool deleteProduct();
+bool deleteRequestItem(int requestHeaderId, bool deleteAll);
+bool deleteRequest();
 
 int main(void)
 {
@@ -109,7 +116,7 @@ RequestItem setRequestItemToObject(int lastItemId) {
 	RequestItem newReqItem;
 
 	newReqItem.id = lastItemId;
-	newReqItem.id_h_product = returnLastId("requests_header_data.bin", 2) + 1;
+	newReqItem.id_h_product = returnLastId("requests_header_data.bin", 3) + 1;
 
 	printf("Insira o Id do Produto: ");
 	scanf("%d", &newReqItem.id_product);
@@ -156,7 +163,7 @@ void saveRequestItems() {
 			system("cls");
 			currentItem++;
 			lastItemId++;
-			requestItensToAdd = (RequestItem*)realloc(requestItensToAdd, sizeof(RequestItem) * currentItem + 1);
+			requestItensToAdd = (RequestItem*)realloc(requestItensToAdd, sizeof(RequestItem) * (currentItem + 1));
 			continue;
 		}
 		else 
@@ -182,7 +189,7 @@ void saveRequestItems() {
 * @returns bool
 */
 bool insertRequestHeader(RequestItem* requestItems, int totalItemLength) {
-	int totalHeaderPrice = 0;
+	float totalHeaderPrice = 0;
 
 	for (int i = 0; i < totalItemLength; i++) {
 		totalHeaderPrice += requestItems[i].total_price;
@@ -228,16 +235,12 @@ bool insertRequestItem(RequestItem newReqItem) {
 		return false;
 	}
 
-	printf("Amount: %d", newReqItem.amount);
-
 	int writeAction = fwrite(&newReqItem, sizeof(RequestItem), 1, requestItemFile);
-
 	if (writeAction == 0) {
 		return false;
 	}
 
 	fclose(requestItemFile);
-
 	return true;
 }
 
@@ -258,7 +261,7 @@ void readProducts() {
     }
      
     while(fread(&product, sizeof(Product), 1, productFile))
-        printf ("Id: %d | Nome do Produto: %s | Descrição: %s | Preço: R$ %.2f\n", 
+        printf ("Id: %d | Nome do Produto: %s | Descricao: %s | Preco: R$ %.2f\n", 
 				product.id,
         		product.name, 
 				product.desc,
@@ -284,7 +287,7 @@ void readRequestHeaders() {
 	}
 
 	while (fread(&requestHeader, sizeof(RequestHeader), 1, requestHeaderFile))
-		printf("Id: %d | Nome do Cliente: %s | Preço Total: R$ %.2f\n",
+		printf("Id: %d | Nome do Cliente: %s | Preco Total: R$ %.2f\n",
 			requestHeader.id,
 			requestHeader.client_name,
 			requestHeader.total_price);
@@ -340,12 +343,13 @@ Product getProductById(int id, bool shouldPrint) {
     if (productFile == NULL)
     {
         fprintf(stderr, "\nErro ao abrir o arquivo.\n");
+		product.id = -1;
         return product;
     }
      
     while(fread(&product, sizeof(Product), 1, productFile)) {
     	if (id == product.id && shouldPrint == true) {
-    		printf ("%d %s %s %.2f\n", 
+    		printf ("Id: %d | Nome: %s | Descrição: %s | R$ %.2f\n", 
 				product.id,
         		product.name, 
 				product.desc,
@@ -404,7 +408,7 @@ RequestHeader getRequestHeaderById(int id, bool shouldPrint) {
 	FILE* requestHeaderFile;
 	RequestHeader requestHeader;
 
-	requestHeaderFile = fopen("requests_item_data.bin", "r");
+	requestHeaderFile = fopen("requests_header_data.bin", "r");
 
 	if (requestHeaderFile == NULL)
 	{
@@ -457,12 +461,426 @@ int returnLastId(char *fileName, int fileType) {
 			idToReturn = requestItem.id;
 			break;
 		case 3:
+			RequestHeader requestHeader;
+			fseek(fileToRead, sizeof(RequestHeader) * -1, SEEK_END);
+			fread(&requestHeader, sizeof(RequestHeader), 1, fileToRead);
+			idToReturn = requestHeader.id;
 			break;
 	}
+
+	//printf("%d", idToReturn);
 	
 	fclose(fileToRead);
 	
 	return idToReturn;
 }
 
+/*
+* Função que atualiza produtos baseado no Id informado
+* @returns bool
+*/
+bool updateProduct() {
+	int idProd;
+	readProducts();
 
+	printf("\nInsira o Id do produto para editar: ");
+	scanf("%d", &idProd);
+
+	system("cls");
+
+	getProductById(idProd, true);
+	FILE* productFile = fopen("product_data.bin", "r+");
+	Product currentProduct;
+
+	if (productFile == NULL)
+	{
+		fprintf(stderr, "\nErro ao abrir o arquivo.\n");
+		return false;
+	}
+
+	int currentIdx = 0;
+	while (fread(&currentProduct, sizeof(Product), 1, productFile)) {
+		if (idProd == currentProduct.id) {
+			int treshHold = currentIdx * sizeof(Product);
+			fseek(productFile, treshHold, SEEK_SET);
+
+			printf("\n\nInsira o novo nome do produto: ");
+			scanf("%s", currentProduct.name);
+			printf("\nInsira a nova descricao do produto: ");
+			scanf("%s", currentProduct.desc);
+			printf("\nInsira o novo preco do produto: ");
+			scanf("%f", &currentProduct.price);
+
+			fwrite(&currentProduct, sizeof(Product), 1, productFile);
+			break;
+		}
+		currentIdx++;
+	}
+
+	fclose(productFile);
+
+	system("cls");
+	printf("Produto atualizado com sucesso!");
+	Sleep(1000);
+	system("cls");
+
+	return true;
+}
+
+/*
+* Função que atualiza produtos baseado no Id informado
+* @returns bool
+*/
+bool updateRequestItem(int requestHeaderId) {
+	int idReqItem;
+	readRequestItemByHeaderId(requestHeaderId);
+
+	printf("\nInsira o Id do item para editar: ");
+	scanf("%d", &idReqItem);
+	
+	system("cls");
+
+	getRequestItemById(idReqItem, true);
+
+	FILE* requestItemFile = fopen("requests_item_data.bin", "r+");
+	RequestItem currentReqItem;
+
+	if (requestItemFile == NULL)
+	{
+		fprintf(stderr, "\nErro ao abrir o arquivo.\n");
+		return false;
+	}
+
+	int currentIdx = 0;
+	while (fread(&currentReqItem, sizeof(RequestItem), 1, requestItemFile)) {
+		if (idReqItem == currentReqItem.id) {
+			int treshHold = currentIdx * sizeof(RequestItem);
+			fseek(requestItemFile, treshHold, SEEK_SET);
+
+			printf("Insira um Id de Produto: ");
+			scanf("%d", &currentReqItem.id_product);
+			printf("\n\nInsira uma nova quantidade de Produtos: ");
+			scanf("%d", &currentReqItem.amount);
+
+			Product product = getProductById(currentReqItem.id_product, false);
+
+			currentReqItem.total_price = product.price * currentReqItem.amount;
+
+			fwrite(&currentReqItem, sizeof(RequestItem), 1, requestItemFile);
+			break;
+		}
+		currentIdx++;
+	}
+
+	fclose(requestItemFile);
+
+	bool updatedFull = updateRequestHeader(requestHeaderId);
+	
+	if (updatedFull) {
+		system("cls");
+		printf("Pedido atualizado com sucesso!");
+		Sleep(1000);
+		system("cls");
+
+		return true;
+	}
+	return false;
+}
+
+/*
+* Função que atualiza o header de um pedido baseado no preço dos itens dos pedidos
+* @param int requestHeaderId = Id do header do pedido
+* @returns bool
+*/
+bool updateRequestHeader(int requestHeaderId) {
+	RequestHeader reqHeader;
+
+	FILE* requestItemFile = fopen("requests_item_data.bin", "r");
+	RequestItem currentReqItem;
+
+	if (requestItemFile == NULL)
+	{
+		fprintf(stderr, "\nErro ao abrir o arquivo.\n");
+		return false;
+	}
+
+	float newTotal;
+	while (fread(&currentReqItem, sizeof(RequestItem), 1, requestItemFile)) {
+		if (requestHeaderId == currentReqItem.id_h_product) {
+			newTotal += currentReqItem.total_price;
+		}
+	}
+
+	fclose(requestItemFile);
+
+	int currentIdx = 0;
+	FILE* requestHeaderFile = fopen("requests_header_data.bin", "r+");
+	if (requestHeaderFile == NULL)
+	{
+		fprintf(stderr, "\nErro ao abrir o arquivo.\n");
+		return false;
+	}
+	while (fread(&reqHeader, sizeof(RequestHeader), 1, requestHeaderFile)) {
+		if (requestHeaderId == reqHeader.id) {
+			int treshHold = currentIdx * sizeof(RequestItem);
+			fseek(requestItemFile, treshHold, SEEK_SET);
+			
+			reqHeader.total_price = newTotal;
+
+			fwrite(&reqHeader, sizeof(RequestHeader), 1, requestHeaderFile);
+			break;
+		}
+		currentIdx++;
+	}
+
+	fclose(requestHeaderFile);
+
+	return true;
+}
+
+/*
+* Função que retorna a quantidade de registros de um arquivo
+* @param char* fileName = Nome do arquivo para pesquisar
+* @param int fileType = Struct do arquivo para pesquisar sendo 1- Product, 2- Request Item e 3 - Request Header
+* @returns int
+*/
+int getTotalFileLength(char* fileName, int fileType) {
+	FILE* fileToRead;
+	int totalLength = 0;
+
+	fileToRead = fopen(fileName, "rb");
+	if (fileToRead == NULL)
+	{
+		fprintf(stderr, "\nErro ao abrir o arquivo.\n");
+		return 0;
+	}
+	fseek(fileToRead, 0, SEEK_END);
+
+	switch (fileType) {
+		case 1:
+			totalLength = ftell(fileToRead) / sizeof(Product);
+			break;
+		case 2:
+			totalLength = ftell(fileToRead) / sizeof(RequestItem);
+			break;
+		case 3:
+			totalLength = ftell(fileToRead) / sizeof(RequestHeader);
+			break;
+	}
+
+	fclose(fileToRead);
+
+	return totalLength;
+}
+
+/*
+* Função que deleta um produto do arquivo
+* @returns bool
+*/
+bool deleteProduct() {
+	int productId;
+	system("cls");
+	readProducts();
+
+	printf("\n\nDigite o Id do produto a ser deletado: ");
+	scanf("%d", &productId);
+
+	system("cls");
+	getProductById(productId, true);
+	printf("\n\nTem certeza que deseja deletar o produto?\n");
+	printf("1.Sim\n");
+	printf("2.Nao\n");
+
+	int confirmation = getch();
+
+	if (confirmation == 49 || confirmation == 13) {
+		FILE* productFile = fopen("product_data.bin", "r");
+		FILE* productFileTemp = fopen("temp_file.bin", "w");
+		Product product;
+
+		while (fread(&product, sizeof(Product), 1, productFile)) {
+			if (product.id != productId) {
+				fwrite(&product, sizeof(Product), 1, productFileTemp);
+			}
+		}
+
+		fclose(productFile);
+		fclose(productFileTemp);
+
+		productFile = fopen("product_data.bin", "w");
+		productFileTemp = fopen("temp_file.bin", "r");
+
+		while (fread(&product, sizeof(Product), 1, productFileTemp)) {
+			fwrite(&product, sizeof(Product), 1, productFile);
+		}
+
+		fclose(productFile);
+		fclose(productFileTemp);
+		remove("temp_file.bin");
+		system("cls");
+		printf("Produto deletado com sucesso!");
+		Sleep(1000);
+		system("cls");
+
+		return true;
+	}
+	else {
+		system("cls");
+		return false;
+	}
+	return false;
+}
+
+/*
+* Função que deleta os itens do pedido
+* @returns bool
+*/
+bool deleteRequestItem(int requestHeaderId, bool deleteAll) {
+	FILE* requestItemFile = fopen("requests_item_data.bin", "r");
+	FILE* requestItemTempFile = fopen("temp_file.bin", "w");
+
+	if (!deleteAll) {
+		int itemToDeleteId;
+		readRequestItemByHeaderId(requestHeaderId);
+		printf("\n\nDigite o Id do item que deseja deletar: ");
+		scanf("%d", &itemToDeleteId);
+
+		system("cls");
+
+		getRequestItemById(itemToDeleteId, true);
+
+		printf("\n\nTem certeza que deseja deletar o item do pedido?\n");
+		printf("1.Sim\n");
+		printf("2.Nao\n");
+
+		int confirmation = getch();
+
+		if (confirmation == 49 || confirmation == 13) {
+			RequestItem requestItem;
+
+			while (fread(&requestItem, sizeof(RequestItem), 1, requestItemFile)) {
+				if (requestItem.id != itemToDeleteId) {
+					fwrite(&requestItem, sizeof(RequestItem), 1, requestItemTempFile);
+				}
+			}
+
+			fclose(requestItemFile);
+			fclose(requestItemTempFile);
+
+			requestItemFile = fopen("requests_item_data.bin", "w");
+			requestItemTempFile = fopen("temp_file.bin", "r");
+
+			while (fread(&requestItem, sizeof(RequestItem), 1, requestItemTempFile)) {
+				fwrite(&requestItem, sizeof(RequestItem), 1, requestItemFile);
+			}
+
+			fclose(requestItemFile);
+			fclose(requestItemTempFile);
+			remove("temp_file.bin");
+			updateRequestHeader(requestHeaderId);
+
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
+	else {
+		RequestItem requestItem;
+
+		while (fread(&requestItem, sizeof(RequestItem), 1, requestItemFile)) {
+			printf("\n\nteste id: %d", requestItem.id_h_product);
+			if (requestItem.id_h_product != requestHeaderId) {
+				fwrite(&requestItem, sizeof(RequestItem), 1, requestItemTempFile);
+			}
+		}
+
+		fclose(requestItemFile);
+		fclose(requestItemTempFile);
+
+		requestItemFile = fopen("requests_item_data.bin", "w");
+		requestItemTempFile = fopen("temp_file.bin", "r");
+
+		while (fread(&requestItem, sizeof(RequestItem), 1, requestItemTempFile)) {
+			fwrite(&requestItem, sizeof(RequestItem), 1, requestItemFile);
+		}
+
+		fclose(requestItemFile);
+		fclose(requestItemTempFile);
+		remove("temp_file.bin");
+
+		return true;
+	}
+	return false;
+}
+
+/*
+* Função que deleta o pedido ou itens do pedido
+* @returns bool
+*/
+bool deleteRequest() {
+	int requestId;
+	readRequestHeaders();
+
+	printf("\n\nDigite o Id do Pedido para deletar: ");
+	scanf("%d", &requestId);
+
+
+	system("cls");
+
+	printf("O que deseja deletar?\n\n");
+	printf("1.Pedido\n");
+	printf("2.Item do Pedido\n");
+
+	int optionSelected = getch();
+
+	if (optionSelected != 49) {
+		deleteRequestItem(requestId, false);
+	}
+	else {
+		FILE* requestHeaderFile = fopen("requests_header_data.bin", "r");
+		FILE* requestHeaderTempFile = fopen("temp_file.bin", "w");
+
+		system("cls");
+
+		printf("Tem certeza que deseja deletar o pedido?\n");
+		printf("1.Sim\n");
+		printf("2.Nao\n");
+
+		int confirmation = getch();
+
+		if (confirmation == 49 || confirmation == 13) {
+			RequestHeader requestHeader;
+
+			while (fread(&requestHeader, sizeof(RequestHeader), 1, requestHeaderFile)) {
+				if (requestHeader.id != requestId) {
+					fwrite(&requestHeader, sizeof(RequestHeader), 1, requestHeaderTempFile);
+				}
+			}
+
+			fclose(requestHeaderFile);
+			fclose(requestHeaderTempFile);
+
+			requestHeaderFile = fopen("requests_header_data.bin", "w");
+			requestHeaderTempFile = fopen("temp_file.bin", "r");
+
+			while (fread(&requestHeader, sizeof(RequestHeader), 1, requestHeaderTempFile)) {
+				fwrite(&requestHeader, sizeof(RequestHeader), 1, requestHeaderFile);
+			}
+
+			fclose(requestHeaderFile);
+			fclose(requestHeaderTempFile);
+			remove("temp_file.bin");
+
+			deleteRequestItem(requestId, true);
+
+			return true;
+		}
+		else {
+			system("cls");
+			return false;
+		}
+	
+	}
+	return false;
+}
