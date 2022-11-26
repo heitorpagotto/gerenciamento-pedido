@@ -25,7 +25,7 @@ typedef struct
 typedef struct
 {
   int id;
-  int total_price;
+  float total_price;
   char client_name[50];
 } RequestHeader;
 
@@ -43,16 +43,16 @@ void readRequestHeaders();
 RequestHeader getRequestHeaderById(int id, bool shouldPrint);
 bool updateProduct();
 int getTotalFileLength(char* fileName, int fileType);
+bool updateRequestItem(int requestHeaderId);
+bool updateRequestHeader(int requestHeaderId);
 
 int main(void)
 {
-//	readProducts();
-	//int i = 0;
-	//for (i = 0; i <= 1; i++) {
-	// insertProduct();
-	//}
-	updateProduct();
-	readProducts();
+	/*readProducts();
+	Sleep(2000);
+	saveRequestItems();*/
+	updateRequestItem(1);
+	readRequestHeaders();
 	return 0;
 }
 
@@ -191,7 +191,7 @@ void saveRequestItems() {
 * @returns bool
 */
 bool insertRequestHeader(RequestItem* requestItems, int totalItemLength) {
-	int totalHeaderPrice = 0;
+	float totalHeaderPrice = 0;
 
 	for (int i = 0; i < totalItemLength; i++) {
 		totalHeaderPrice += requestItems[i].total_price;
@@ -293,7 +293,7 @@ void readRequestHeaders() {
 	}
 
 	while (fread(&requestHeader, sizeof(RequestHeader), 1, requestHeaderFile))
-		printf("Id: %d | Nome do Cliente: %s | Preço Total: R$ %.2f\n",
+		printf("Id: %d | Nome do Cliente: %s | Preco Total: R$ %.2f\n",
 			requestHeader.id,
 			requestHeader.client_name,
 			requestHeader.total_price);
@@ -414,7 +414,7 @@ RequestHeader getRequestHeaderById(int id, bool shouldPrint) {
 	FILE* requestHeaderFile;
 	RequestHeader requestHeader;
 
-	requestHeaderFile = fopen("requests_item_data.bin", "r");
+	requestHeaderFile = fopen("requests_header_data.bin", "r");
 
 	if (requestHeaderFile == NULL)
 	{
@@ -481,9 +481,12 @@ int returnLastId(char *fileName, int fileType) {
 	return idToReturn;
 }
 
+/*
+* Função que atualiza produtos baseado no Id informado
+* @returns bool
+*/
 bool updateProduct() {
 	int idProd;
-	int totalLength = getTotalFileLength("product_data.bin", 1);
 	readProducts();
 
 	printf("\nInsira o Id do produto para editar: ");
@@ -504,12 +507,9 @@ bool updateProduct() {
 	int currentIdx = 0;
 	while (fread(&currentProduct, sizeof(Product), 1, productFile)) {
 		if (idProd == currentProduct.id) {
-			/*fclose(productFile);
-			productFile = fopen("product_data.bin", "w+")*/
 			int treshHold = currentIdx * sizeof(Product);
 			fseek(productFile, treshHold, SEEK_SET);
 
-			//currentProduct.id = idProd;
 			printf("\n\nInsira o novo nome do produto: ");
 			scanf("%s", currentProduct.name);
 			printf("\nInsira a nova descricao do produto: ");
@@ -529,6 +529,117 @@ bool updateProduct() {
 	printf("Produto atualizado com sucesso!");
 	Sleep(1000);
 	system("cls");
+
+	return true;
+}
+
+/*
+* Função que atualiza produtos baseado no Id informado
+* @returns bool
+*/
+bool updateRequestItem(int requestHeaderId) {
+	int idReqItem;
+	readRequestItemByHeaderId(requestHeaderId);
+
+	printf("\nInsira o Id do item para editar: ");
+	scanf("%d", &idReqItem);
+	
+	system("cls");
+
+	getRequestItemById(idReqItem, true);
+
+	FILE* requestItemFile = fopen("requests_item_data.bin", "r+");
+	RequestItem currentReqItem;
+
+	if (requestItemFile == NULL)
+	{
+		fprintf(stderr, "\nErro ao abrir o arquivo.\n");
+		return false;
+	}
+
+	int currentIdx = 0;
+	while (fread(&currentReqItem, sizeof(RequestItem), 1, requestItemFile)) {
+		if (idReqItem == currentReqItem.id) {
+			int treshHold = currentIdx * sizeof(RequestItem);
+			fseek(requestItemFile, treshHold, SEEK_SET);
+
+			printf("Insira um Id de Produto: ");
+			scanf("%d", &currentReqItem.id_product);
+			printf("\n\nInsira uma nova quantidade de Produtos: ");
+			scanf("%d", &currentReqItem.amount);
+
+			Product product = getProductById(currentReqItem.id_product, false);
+
+			currentReqItem.total_price = product.price * currentReqItem.amount;
+
+			fwrite(&currentReqItem, sizeof(RequestItem), 1, requestItemFile);
+			break;
+		}
+		currentIdx++;
+	}
+
+	fclose(requestItemFile);
+
+	bool updatedFull = updateRequestHeader(requestHeaderId);
+	
+	if (updatedFull) {
+		system("cls");
+		printf("Pedido atualizado com sucesso!");
+		Sleep(1000);
+		system("cls");
+
+		return true;
+	}
+	return false;
+}
+
+/*
+* Função que atualiza o header de um pedido baseado no preço dos itens dos pedidos
+* @param int requestHeaderId = Id do header do pedido
+* @returns bool
+*/
+bool updateRequestHeader(int requestHeaderId) {
+	RequestHeader reqHeader;
+
+	FILE* requestItemFile = fopen("requests_item_data.bin", "r");
+	RequestItem currentReqItem;
+
+	if (requestItemFile == NULL)
+	{
+		fprintf(stderr, "\nErro ao abrir o arquivo.\n");
+		return false;
+	}
+
+	float newTotal;
+	while (fread(&currentReqItem, sizeof(RequestItem), 1, requestItemFile)) {
+		if (requestHeaderId == currentReqItem.id_h_product) {
+			newTotal += currentReqItem.total_price;
+		}
+	}
+
+	fclose(requestItemFile);
+
+	int currentIdx = 0;
+	FILE* requestHeaderFile = fopen("requests_header_data.bin", "r+");
+	if (requestHeaderFile == NULL)
+	{
+		fprintf(stderr, "\nErro ao abrir o arquivo.\n");
+		return false;
+	}
+	while (fread(&reqHeader, sizeof(RequestHeader), 1, requestHeaderFile)) {
+		if (requestHeaderId == reqHeader.id) {
+			int treshHold = currentIdx * sizeof(RequestItem);
+			fseek(requestItemFile, treshHold, SEEK_SET);
+			
+			reqHeader.total_price = newTotal;
+
+			fwrite(&reqHeader, sizeof(RequestHeader), 1, requestHeaderFile);
+			break;
+		}
+		currentIdx++;
+	}
+
+	fclose(requestHeaderFile);
 
 	return true;
 }
