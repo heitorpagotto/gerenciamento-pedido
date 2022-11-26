@@ -41,9 +41,18 @@ bool insertRequestHeader(RequestItem* requestItems, int totalItemLength);
 void readRequestItemByHeaderId(int headerId);
 void readRequestHeaders();
 RequestHeader getRequestHeaderById(int id, bool shouldPrint);
+bool updateProduct();
+int getTotalFileLength(char* fileName, int fileType);
 
 int main(void)
 {
+//	readProducts();
+	int i = 0;
+	for (i = 0; i <= 1; i++) {
+	 insertProduct();
+	}
+	/*updateProduct();
+	readProducts();*/
 	return 0;
 }
 
@@ -109,7 +118,7 @@ RequestItem setRequestItemToObject(int lastItemId) {
 	RequestItem newReqItem;
 
 	newReqItem.id = lastItemId;
-	newReqItem.id_h_product = returnLastId("requests_header_data.bin", 2) + 1;
+	newReqItem.id_h_product = returnLastId("requests_header_data.bin", 3) + 1;
 
 	printf("Insira o Id do Produto: ");
 	scanf("%d", &newReqItem.id_product);
@@ -258,7 +267,7 @@ void readProducts() {
     }
      
     while(fread(&product, sizeof(Product), 1, productFile))
-        printf ("Id: %d | Nome do Produto: %s | Descrição: %s | Preço: R$ %.2f\n", 
+        printf ("Id: %d | Nome do Produto: %s | Descricao: %s | Preco: R$ %.2f\n", 
 				product.id,
         		product.name, 
 				product.desc,
@@ -340,12 +349,13 @@ Product getProductById(int id, bool shouldPrint) {
     if (productFile == NULL)
     {
         fprintf(stderr, "\nErro ao abrir o arquivo.\n");
+		product.id = -1;
         return product;
     }
      
     while(fread(&product, sizeof(Product), 1, productFile)) {
     	if (id == product.id && shouldPrint == true) {
-    		printf ("%d %s %s %.2f\n", 
+    		printf ("Id: %d | Nome: %s | Descrição: %s | R$ %.2f\n", 
 				product.id,
         		product.name, 
 				product.desc,
@@ -457,12 +467,96 @@ int returnLastId(char *fileName, int fileType) {
 			idToReturn = requestItem.id;
 			break;
 		case 3:
+			RequestHeader requestHeader;
+			fseek(fileToRead, sizeof(RequestHeader) * -1, SEEK_END);
+			fread(&requestHeader, sizeof(RequestHeader), 1, fileToRead);
+			idToReturn = requestHeader.id;
 			break;
 	}
+
+	//printf("%d", idToReturn);
 	
 	fclose(fileToRead);
 	
 	return idToReturn;
 }
 
+bool updateProduct() {
+	int idProd;
+	int totalLength = getTotalFileLength("product_data.bin", 1);
+	readProducts();
 
+	printf("\nInsira o Id do produto para editar: ");
+	scanf("%d", &idProd);
+
+	system("cls");
+
+	getProductById(idProd, true);
+	FILE* productFile = fopen("product_data.bin", "a+");
+	Product currentProduct;
+
+	if (productFile == NULL)
+	{
+		fprintf(stderr, "\nErro ao abrir o arquivo.\n");
+		return false;
+	}
+
+	int currentIdx = 0;
+	while (fread(&currentProduct, sizeof(Product), 1, productFile)) {
+		if (idProd == currentProduct.id) {
+			int treshHold = (totalLength - currentIdx) * sizeof(Product);
+			fseek(productFile, treshHold, SEEK_SET);
+
+			//currentProduct.id = idProd;
+			printf("\n\nInsira o novo nome do produto: ");
+			scanf("%s", currentProduct.name);
+			printf("\nInsira a nova descricao do produto: ");
+			scanf("%s", currentProduct.desc);
+			printf("\nInsira o novo preco do produto: ");
+			scanf("%f", &currentProduct.price);
+
+			fwrite(&currentProduct, sizeof(Product), 1, productFile);
+			break;
+		}
+		currentIdx++;
+	}
+
+	fclose(productFile);
+
+	return true;
+}
+
+/*
+* Função que retorna a quantidade de registros de um arquivo
+* @param char* fileName = Nome do arquivo para pesquisar
+* @param int fileType = Struct do arquivo para pesquisar sendo 1- Product, 2- Request Item e 3 - Request Header
+* @returns int
+*/
+int getTotalFileLength(char* fileName, int fileType) {
+	FILE* fileToRead;
+	int totalLength = 0;
+
+	fileToRead = fopen(fileName, "rb");
+	if (fileToRead == NULL)
+	{
+		fprintf(stderr, "\nErro ao abrir o arquivo.\n");
+		return 0;
+	}
+	fseek(fileToRead, 0, SEEK_END);
+
+	switch (fileType) {
+		case 1:
+			totalLength = ftell(fileToRead) / sizeof(Product);
+			break;
+		case 2:
+			totalLength = ftell(fileToRead) / sizeof(RequestItem);
+			break;
+		case 3:
+			totalLength = ftell(fileToRead) / sizeof(RequestHeader);
+			break;
+	}
+
+	fclose(fileToRead);
+
+	return totalLength;
+}
