@@ -45,13 +45,12 @@ bool updateProduct();
 int getTotalFileLength(char* fileName, int fileType);
 bool updateRequestItem(int requestHeaderId);
 bool updateRequestHeader(int requestHeaderId);
-void deleteProduct();
+bool deleteProduct();
+bool deleteRequestItem(int requestHeaderId, bool deleteAll);
+bool deleteRequest();
 
 int main(void)
 {
-	deleteProduct();
-	readProducts();
-
 	return 0;
 }
 
@@ -676,9 +675,9 @@ int getTotalFileLength(char* fileName, int fileType) {
 
 /*
 * Função que deleta um produto do arquivo
-* @returns void
+* @returns bool
 */
-void deleteProduct() {
+bool deleteProduct() {
 	int productId;
 	system("cls");
 	readProducts();
@@ -718,5 +717,170 @@ void deleteProduct() {
 		fclose(productFile);
 		fclose(productFileTemp);
 		remove("temp_file.bin");
+		system("cls");
+		printf("Produto deletado com sucesso!");
+		Sleep(1000);
+		system("cls");
+
+		return true;
 	}
+	else {
+		system("cls");
+		return false;
+	}
+	return false;
+}
+
+/*
+* Função que deleta os itens do pedido
+* @returns bool
+*/
+bool deleteRequestItem(int requestHeaderId, bool deleteAll) {
+	FILE* requestItemFile = fopen("requests_item_data.bin", "r");
+	FILE* requestItemTempFile = fopen("temp_file.bin", "w");
+
+	if (!deleteAll) {
+		int itemToDeleteId;
+		readRequestItemByHeaderId(requestHeaderId);
+		printf("\n\nDigite o Id do item que deseja deletar: ");
+		scanf("%d", &itemToDeleteId);
+
+		system("cls");
+
+		getRequestItemById(itemToDeleteId, true);
+
+		printf("\n\nTem certeza que deseja deletar o item do pedido?\n");
+		printf("1.Sim\n");
+		printf("2.Nao\n");
+
+		int confirmation = getch();
+
+		if (confirmation == 49 || confirmation == 13) {
+			RequestItem requestItem;
+
+			while (fread(&requestItem, sizeof(RequestItem), 1, requestItemFile)) {
+				if (requestItem.id != itemToDeleteId) {
+					fwrite(&requestItem, sizeof(RequestItem), 1, requestItemTempFile);
+				}
+			}
+
+			fclose(requestItemFile);
+			fclose(requestItemTempFile);
+
+			requestItemFile = fopen("requests_item_data.bin", "w");
+			requestItemTempFile = fopen("temp_file.bin", "r");
+
+			while (fread(&requestItem, sizeof(RequestItem), 1, requestItemTempFile)) {
+				fwrite(&requestItem, sizeof(RequestItem), 1, requestItemFile);
+			}
+
+			fclose(requestItemFile);
+			fclose(requestItemTempFile);
+			remove("temp_file.bin");
+			updateRequestHeader(requestHeaderId);
+
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
+	else {
+		RequestItem requestItem;
+
+		while (fread(&requestItem, sizeof(RequestItem), 1, requestItemFile)) {
+			printf("\n\nteste id: %d", requestItem.id_h_product);
+			if (requestItem.id_h_product != requestHeaderId) {
+				fwrite(&requestItem, sizeof(RequestItem), 1, requestItemTempFile);
+			}
+		}
+
+		fclose(requestItemFile);
+		fclose(requestItemTempFile);
+
+		requestItemFile = fopen("requests_item_data.bin", "w");
+		requestItemTempFile = fopen("temp_file.bin", "r");
+
+		while (fread(&requestItem, sizeof(RequestItem), 1, requestItemTempFile)) {
+			fwrite(&requestItem, sizeof(RequestItem), 1, requestItemFile);
+		}
+
+		fclose(requestItemFile);
+		fclose(requestItemTempFile);
+		remove("temp_file.bin");
+
+		return true;
+	}
+	return false;
+}
+
+/*
+* Função que deleta o pedido ou itens do pedido
+* @returns bool
+*/
+bool deleteRequest() {
+	int requestId;
+	readRequestHeaders();
+
+	printf("\n\nDigite o Id do Pedido para deletar: ");
+	scanf("%d", &requestId);
+
+
+	system("cls");
+
+	printf("O que deseja deletar?\n\n");
+	printf("1.Pedido\n");
+	printf("2.Item do Pedido\n");
+
+	int optionSelected = getch();
+
+	if (optionSelected != 49) {
+		deleteRequestItem(requestId, false);
+	}
+	else {
+		FILE* requestHeaderFile = fopen("requests_header_data.bin", "r");
+		FILE* requestHeaderTempFile = fopen("temp_file.bin", "w");
+
+		system("cls");
+
+		printf("Tem certeza que deseja deletar o pedido?\n");
+		printf("1.Sim\n");
+		printf("2.Nao\n");
+
+		int confirmation = getch();
+
+		if (confirmation == 49 || confirmation == 13) {
+			RequestHeader requestHeader;
+
+			while (fread(&requestHeader, sizeof(RequestHeader), 1, requestHeaderFile)) {
+				if (requestHeader.id != requestId) {
+					fwrite(&requestHeader, sizeof(RequestHeader), 1, requestHeaderTempFile);
+				}
+			}
+
+			fclose(requestHeaderFile);
+			fclose(requestHeaderTempFile);
+
+			requestHeaderFile = fopen("requests_header_data.bin", "w");
+			requestHeaderTempFile = fopen("temp_file.bin", "r");
+
+			while (fread(&requestHeader, sizeof(RequestHeader), 1, requestHeaderTempFile)) {
+				fwrite(&requestHeader, sizeof(RequestHeader), 1, requestHeaderFile);
+			}
+
+			fclose(requestHeaderFile);
+			fclose(requestHeaderTempFile);
+			remove("temp_file.bin");
+
+			deleteRequestItem(requestId, true);
+
+			return true;
+		}
+		else {
+			system("cls");
+			return false;
+		}
+	
+	}
+	return false;
 }
