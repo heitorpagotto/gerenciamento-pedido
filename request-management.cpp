@@ -50,9 +50,11 @@ int main(void)
 {
 	/*readProducts();
 	Sleep(2000);
-	saveRequestItems();*/
-	updateRequestItem(1);
-	readRequestHeaders();
+	*/
+	saveRequestItems();
+	readRequestItemByHeaderId(2);
+	/*updateRequestItem(1);
+	readRequestHeaders();*/
 	return 0;
 }
 
@@ -165,7 +167,7 @@ void saveRequestItems() {
 			system("cls");
 			currentItem++;
 			lastItemId++;
-			requestItensToAdd = (RequestItem*)realloc(requestItensToAdd, sizeof(RequestItem) * currentItem + 1);
+			requestItensToAdd = (RequestItem*)realloc(requestItensToAdd, sizeof(RequestItem) * (currentItem + 1));
 			continue;
 		}
 		else 
@@ -237,16 +239,12 @@ bool insertRequestItem(RequestItem newReqItem) {
 		return false;
 	}
 
-	printf("Amount: %d", newReqItem.amount);
-
 	int writeAction = fwrite(&newReqItem, sizeof(RequestItem), 1, requestItemFile);
-
 	if (writeAction == 0) {
 		return false;
 	}
 
 	fclose(requestItemFile);
-
 	return true;
 }
 
