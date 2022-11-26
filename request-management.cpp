@@ -45,16 +45,13 @@ bool updateProduct();
 int getTotalFileLength(char* fileName, int fileType);
 bool updateRequestItem(int requestHeaderId);
 bool updateRequestHeader(int requestHeaderId);
+void deleteProduct();
 
 int main(void)
 {
-	/*readProducts();
-	Sleep(2000);
-	*/
-	saveRequestItems();
-	readRequestItemByHeaderId(2);
-	/*updateRequestItem(1);
-	readRequestHeaders();*/
+	deleteProduct();
+	readProducts();
+
 	return 0;
 }
 
@@ -675,4 +672,51 @@ int getTotalFileLength(char* fileName, int fileType) {
 	fclose(fileToRead);
 
 	return totalLength;
+}
+
+/*
+* Função que deleta um produto do arquivo
+* @returns void
+*/
+void deleteProduct() {
+	int productId;
+	system("cls");
+	readProducts();
+
+	printf("\n\nDigite o Id do produto a ser deletado: ");
+	scanf("%d", &productId);
+
+	system("cls");
+	getProductById(productId, true);
+	printf("\n\nTem certeza que deseja deletar o produto?\n");
+	printf("1.Sim\n");
+	printf("2.Nao\n");
+
+	int confirmation = getch();
+
+	if (confirmation == 49 || confirmation == 13) {
+		FILE* productFile = fopen("product_data.bin", "r");
+		FILE* productFileTemp = fopen("temp_file.bin", "w");
+		Product product;
+
+		while (fread(&product, sizeof(Product), 1, productFile)) {
+			if (product.id != productId) {
+				fwrite(&product, sizeof(Product), 1, productFileTemp);
+			}
+		}
+
+		fclose(productFile);
+		fclose(productFileTemp);
+
+		productFile = fopen("product_data.bin", "w");
+		productFileTemp = fopen("temp_file.bin", "r");
+
+		while (fread(&product, sizeof(Product), 1, productFileTemp)) {
+			fwrite(&product, sizeof(Product), 1, productFile);
+		}
+
+		fclose(productFile);
+		fclose(productFileTemp);
+		remove("temp_file.bin");
+	}
 }
