@@ -29,6 +29,7 @@ typedef struct
   char client_name[50];
 } RequestHeader;
 
+int isPogramRun = 1;
 
 void mainMenuRender();
 bool insertProduct();
@@ -38,12 +39,19 @@ int returnLastId(char *fileName, int fileType);
 RequestItem setRequestItemToObject();
 void saveRequestItems();
 bool insertRequestItem(RequestItem newReqItem);
+bool insertRequestHeader(RequestItem* requestItems, int totalItemLength);
+void readRequestItemByHeaderId(int headerId);
+void readRequestHeaders();
 
 int main(void)
 {
-  saveRequestItems();
+	/*insertProduct();
+	saveRequestItems();
+	readRequestHeaders();*/
+	readProducts();
+	//readRequestItemByHeaderId(1);
   
-  return 0;
+	return 0;
 }
 
 void mainMenuRender()
@@ -91,6 +99,11 @@ bool insertProduct() {
 	}
 	
 	fclose(productFile);
+
+	system("cls");
+	printf("Produto adicionado com sucesso!");
+	Sleep(500);
+	system("cls");
 	
 	return true;
 }
@@ -139,7 +152,7 @@ void saveRequestItems() {
 		requestItensToAdd[currentItem].total_price = reqItem.total_price;
 		requestItensToAdd[currentItem].amount = reqItem.amount;
 
-		printf("Deseja inserir mais um item?\n\n");
+		printf("\nDeseja inserir mais um item?\n\n");
 		printf("1. Sim\n");
 		printf("2. Nao");
 
@@ -156,10 +169,54 @@ void saveRequestItems() {
 			for (int i = 0; i <= currentItem;i++) {
 				insertRequestItem(requestItensToAdd[i]);
 			}
-			//TODO: INSERT REQUEST HEADER
+			system("cls");
+			insertRequestHeader(requestItensToAdd,currentItem+1);
+			system("cls");
 			loopRunning = 0;
+			printf("Pedido cadastrado com sucesso!");
+			Sleep(500);
+			system("cls");
 		}
 	}
+}
+
+/*
+* Função que insere um header de um pedido, calculando o valor total baseado nos seus itens e no tamanho do array
+* @param RequestItem* requestItems = Itens do pedido
+* @param int totalItemLength = Tamanho total do array de itens do pedido
+* @returns bool
+*/
+bool insertRequestHeader(RequestItem* requestItems, int totalItemLength) {
+	int totalHeaderPrice = 0;
+
+	for (int i = 0; i < totalItemLength; i++) {
+		totalHeaderPrice += requestItems[i].total_price;
+	}
+
+	FILE* requestHeaderFile;
+	RequestHeader newReqHeader;
+
+	newReqHeader.id = requestItems[0].id_h_product;
+	newReqHeader.total_price = totalHeaderPrice;
+
+	printf("Insira o nome do cliente: ");
+	scanf("%s", newReqHeader.client_name);
+
+	requestHeaderFile = fopen("requests_header_data.bin", "a+");
+
+	if (requestHeaderFile == NULL) {
+		return false;
+	}
+
+	int writeAction = fwrite(&newReqHeader, sizeof(RequestHeader), 1, requestHeaderFile);
+
+	if (writeAction == 0) {
+		return false;
+	}
+
+	fclose(requestHeaderFile);
+
+	return true;
 }
 
 /*
@@ -214,6 +271,64 @@ void readProducts() {
 }
 
 /*
+* Função que printa as informações de todos os headers de pedidos dentro do arquivo
+* @returns void
+*/
+void readRequestHeaders() {
+	FILE* requestHeaderFile;
+	RequestHeader requestHeader;
+
+	requestHeaderFile = fopen("requests_header_data.bin", "r");
+
+	if (requestHeaderFile == NULL)
+	{
+		fprintf(stderr, "\nErro ao abrir o arquivo.\n");
+		return;
+	}
+
+	while (fread(&requestHeader, sizeof(RequestHeader), 1, requestHeaderFile))
+		printf("Id: %d | Nome do Cliente: %s | Preço Total: R$ %.2f\n",
+			requestHeader.id,
+			requestHeader.client_name,
+			requestHeader.total_price);
+
+	fclose(requestHeaderFile);
+}
+
+/*
+* Função que printa todos os itens de um pedido baseado no Id do header do pedido
+* @param int headerId = Id do header do pedido
+* @returns void
+*/
+void readRequestItemByHeaderId(int headerId) {
+	FILE* requestItemFile;
+	RequestItem requestItem;
+
+	requestItemFile = fopen("product_data.bin", "r");
+
+	if (requestItemFile == NULL)
+	{
+		fprintf(stderr, "\nErro ao abrir o arquivo.\n");
+		return;
+	}
+
+	while (fread(&requestItem, sizeof(RequestItem), 1, requestItemFile)) {
+		if (requestItem.id_h_product = headerId) {
+			Product product = getProductById(requestItem.id_product, false);
+			printf("Id: %d | Id Pedido: %d | Id Produto: %d | Nome do Produto: %s | Quantidade: %d | R$%.2f\n",
+				requestItem.id,
+				requestItem.id_h_product,
+				requestItem.id_product,
+				product.name,
+				requestItem.amount,
+				requestItem.total_price);
+		}
+	}
+
+	fclose(requestItemFile);
+}
+
+/*
 * Função que retorna o produto baseado no Id
 * @param int id = Id do produto
 * @returns Product
@@ -243,6 +358,42 @@ Product getProductById(int id, bool shouldPrint) {
     fclose(productFile);
     
     return product;
+}
+
+/*
+* Função que retorna o item de pedido por id, com habilidade de printar na tela
+* @param int id = Id do item do pedido
+* @param bool shouldPrint = Boolean para caso se deva printar ou não o item do pedido
+* @returns RequestItem
+*/
+RequestItem getRequestItemById(int id, bool shouldPrint) {
+	FILE* requestItemFile;
+	RequestItem requestItem;
+
+	requestItemFile = fopen("requests_item_data.bin", "r");
+
+	if (requestItemFile == NULL)
+	{
+		fprintf(stderr, "\nErro ao abrir o arquivo.\n");
+		return requestItem;
+	}
+
+	while (fread(&requestItem, sizeof(RequestItem), 1, requestItemFile)) {
+		if (id == requestItem.id && shouldPrint == true) {
+			Product product = getProductById(requestItem.id_product, false);
+			printf("%d %d %d %s %d R$%.2f\n",
+				requestItem.id,
+				requestItem.id_h_product,
+				requestItem.id_product,
+				product.name,
+				requestItem.amount,
+				requestItem.total_price);
+		}
+	}
+
+	fclose(requestItemFile);
+
+	return requestItem;
 }
 
 /*
