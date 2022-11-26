@@ -47,12 +47,12 @@ int getTotalFileLength(char* fileName, int fileType);
 int main(void)
 {
 //	readProducts();
-	int i = 0;
-	for (i = 0; i <= 1; i++) {
-	 insertProduct();
-	}
-	/*updateProduct();
-	readProducts();*/
+	//int i = 0;
+	//for (i = 0; i <= 1; i++) {
+	// insertProduct();
+	//}
+	updateProduct();
+	readProducts();
 	return 0;
 }
 
@@ -492,7 +492,7 @@ bool updateProduct() {
 	system("cls");
 
 	getProductById(idProd, true);
-	FILE* productFile = fopen("product_data.bin", "a+");
+	FILE* productFile = fopen("product_data.bin", "r+");
 	Product currentProduct;
 
 	if (productFile == NULL)
@@ -504,7 +504,9 @@ bool updateProduct() {
 	int currentIdx = 0;
 	while (fread(&currentProduct, sizeof(Product), 1, productFile)) {
 		if (idProd == currentProduct.id) {
-			int treshHold = (totalLength - currentIdx) * sizeof(Product);
+			/*fclose(productFile);
+			productFile = fopen("product_data.bin", "w+")*/
+			int treshHold = currentIdx * sizeof(Product);
 			fseek(productFile, treshHold, SEEK_SET);
 
 			//currentProduct.id = idProd;
@@ -522,6 +524,11 @@ bool updateProduct() {
 	}
 
 	fclose(productFile);
+
+	system("cls");
+	printf("Produto atualizado com sucesso!");
+	Sleep(1000);
+	system("cls");
 
 	return true;
 }
