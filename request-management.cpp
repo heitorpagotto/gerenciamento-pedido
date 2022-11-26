@@ -40,19 +40,10 @@ bool insertRequestItem(RequestItem newReqItem);
 bool insertRequestHeader(RequestItem* requestItems, int totalItemLength);
 void readRequestItemByHeaderId(int headerId);
 void readRequestHeaders();
+RequestHeader getRequestHeaderById(int id, bool shouldPrint);
 
 int main(void)
 {
-	//saveRequestItems();
-	readRequestItemByHeaderId(1);
-	//
-	/*readRequestHeaders();
-	*/
-	/*
-	
-*/
-	//;
-  
 	return 0;
 }
 
@@ -66,7 +57,7 @@ void mainMenuRender()
   getchar();
 }
 
-// TODO: Implementar métodos de insert/get/getById para RequestItem e RequestHeader
+
 
 /*
 * Função que salva informações da struct Product para o arquivo bin
@@ -337,6 +328,7 @@ void readRequestItemByHeaderId(int headerId) {
 /*
 * Função que retorna o produto baseado no Id
 * @param int id = Id do produto
+* @param bool shouldPrint = Boolean para caso se deva printar ou não o produto
 * @returns Product
 */
 Product getProductById(int id, bool shouldPrint) {
@@ -400,6 +392,38 @@ RequestItem getRequestItemById(int id, bool shouldPrint) {
 	fclose(requestItemFile);
 
 	return requestItem;
+}
+
+/*
+* Função que busca o header de um pedido por id
+* @param int id = Id do header
+* @param bool shouldPrint = Boolean para caso se deva printar ou não o header do pedido
+* @returns RequestHeader
+*/
+RequestHeader getRequestHeaderById(int id, bool shouldPrint) {
+	FILE* requestHeaderFile;
+	RequestHeader requestHeader;
+
+	requestHeaderFile = fopen("requests_item_data.bin", "r");
+
+	if (requestHeaderFile == NULL)
+	{
+		fprintf(stderr, "\nErro ao abrir o arquivo.\n");
+		return requestHeader;
+	}
+
+	while (fread(&requestHeader, sizeof(RequestHeader), 1, requestHeaderFile)) {
+		if (id == requestHeader.id && shouldPrint == true) {
+			printf("Id: %d | Nome do Cliente: %s | R$%.2f\n",
+				requestHeader.id,
+				requestHeader.client_name,
+				requestHeader.total_price);
+		}
+	}
+
+	fclose(requestHeaderFile);
+
+	return requestHeader;
 }
 
 /*
