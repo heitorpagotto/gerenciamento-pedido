@@ -53,6 +53,9 @@ void genericOptionsRender();
 void renderProductMenu();
 void renderErrorMessage();
 void renderRequestMenu();
+int getRequestItensQuantityByHeaderId(int requestHeaderId);
+int getRequestHeaderQuantity();
+int getProductQuantity();
 
 int main(void)
 {
@@ -61,6 +64,10 @@ int main(void)
 	return 0;
 }
 
+/*
+ *Função que imprime o menu de principal e trata a opção selecionada
+ *@returns void
+ */
 void mainMenuRender()
 {
 	printf("Selecione o que gostaria de gerenciar:\n\n");
@@ -88,6 +95,10 @@ void mainMenuRender()
 	}
 }
 
+/*
+ *Função que imprime o menu de produtos e trata a opção selecionada
+ *@returns void
+ */
 void renderProductMenu()
 {
 	printf("Selecione uma ação para executar:\n\n");
@@ -114,37 +125,66 @@ void renderProductMenu()
 
 	if (keyCode == 50)
 	{
-		readProducts(true);
+		if (getProductQuantity() > 0)
+		{
+			readProducts(true);
+		}
+		else
+		{
+			printf("Não existem produtos cadastrados.");
+			Sleep(1000);
+			system("cls");
+			renderProductMenu();
+		}
 	}
 
 	if (keyCode == 51)
 	{
-		bool updateResult = updateProduct();
-		if (updateResult == false)
+		if (getProductQuantity() > 0)
 		{
-			renderErrorMessage();
-			return;
+			bool updateResult = updateProduct();
+			if (updateResult == false)
+			{
+				renderErrorMessage();
+				return;
+			}
+			else
+			{
+				renderProductMenu();
+			}
 		}
 		else
 		{
+			printf("Não existem produtos cadastrados.");
+			Sleep(1000);
+			system("cls");
 			renderProductMenu();
 		}
 	}
 
 	if (keyCode == 52)
 	{
-		bool deleteResult = deleteProduct();
-		if (deleteResult == false)
+		if (getProductQuantity() > 0)
 		{
-			renderErrorMessage();
-			return;
+			bool deleteResult = deleteProduct();
+			if (deleteResult == false)
+			{
+				renderErrorMessage();
+				return;
+			}
+			else
+			{
+				renderProductMenu();
+			}
 		}
 		else
 		{
+			printf("Não existem produtos cadastrados.");
+			Sleep(1000);
+			system("cls");
 			renderProductMenu();
 		}
 	}
-
 	if (keyCode == 53)
 	{
 		system("cls");
@@ -152,10 +192,15 @@ void renderProductMenu()
 	}
 }
 
+/*
+ *Função que imprime o menu de pedidos e trata a opção selecionada
+ *@returns void
+ */
 void renderRequestMenu()
 {
 	printf("Selecione uma ação para executar:\n\n");
 	genericOptionsRender();
+	int requestHeaderQty = getRequestHeaderQuantity();
 
 	int keyCode = getch();
 
@@ -171,21 +216,29 @@ void renderRequestMenu()
 	if (keyCode == 50)
 	{
 		readRequestHeaders();
-		printf("\nDeseja ver itens de um pedido?\n\n");
-		printf("1.Sim\n");
-		printf("2.Não\n");
-		int confirmationCode = getch();
-
-		if (confirmationCode == 49)
+		if (requestHeaderQty > 0)
 		{
-			int requestId;
-			printf("\nInsira o id do pedido: ");
-			scanf("%d", &requestId);
-			system("cls");
-			readRequestItemByHeaderId(requestId);
-			printf("\n\nPressione [ENTER] para retornar...");
-			int enterKey = getch();
-			if (enterKey == 13)
+			printf("\nDeseja ver itens de um pedido?\n\n");
+			printf("1.Sim\n");
+			printf("2.Não\n");
+			int confirmationCode = getch();
+
+			if (confirmationCode == 49)
+			{
+				int requestId;
+				printf("\nInsira o id do pedido: ");
+				scanf("%d", &requestId);
+				system("cls");
+				readRequestItemByHeaderId(requestId);
+				printf("\n\nPressione [ENTER] para retornar...");
+				int enterKey = getch();
+				if (enterKey == 13)
+				{
+					system("cls");
+					renderRequestMenu();
+				}
+			}
+			else
 			{
 				system("cls");
 				renderRequestMenu();
@@ -193,6 +246,8 @@ void renderRequestMenu()
 		}
 		else
 		{
+			printf("Não existem pedidos cadastrados.");
+			Sleep(1000);
 			system("cls");
 			renderRequestMenu();
 		}
@@ -201,35 +256,55 @@ void renderRequestMenu()
 	if (keyCode == 51)
 	{
 		readRequestHeaders();
-		printf("\n\nInisira o Id do pedido para editar: ");
-		int requestHeaderId;
-		scanf("%d", &requestHeaderId);
-		system("cls");
-		bool updateResult = updateRequestItem(requestHeaderId);
-		if (updateResult == true)
+		if (requestHeaderQty > 0)
 		{
+			printf("\n\nInisira o Id do pedido para editar: ");
+			int requestHeaderId;
+			scanf("%d", &requestHeaderId);
 			system("cls");
-			renderRequestMenu();
+			bool updateResult = updateRequestItem(requestHeaderId);
+			if (updateResult == true)
+			{
+				system("cls");
+				renderRequestMenu();
+			}
+			else
+			{
+				renderErrorMessage();
+				return;
+			}
 		}
 		else
 		{
-			renderErrorMessage();
-			return;
+			printf("Não existem pedidos cadastrados.");
+			Sleep(1000);
+			system("cls");
+			renderRequestMenu();
 		}
 	}
 
 	if (keyCode == 52)
 	{
-		bool deleteResult = deleteRequest();
-		if (deleteResult == true)
+		if (requestHeaderQty > 0)
 		{
-			system("cls");
-			renderRequestMenu();
+			bool deleteResult = deleteRequest();
+			if (deleteResult == true)
+			{
+				system("cls");
+				renderRequestMenu();
+			}
+			else
+			{
+				renderErrorMessage();
+				return;
+			}
 		}
 		else
 		{
-			renderErrorMessage();
-			return;
+			printf("Não existem pedidos cadastrados.");
+			Sleep(1000);
+			system("cls");
+			renderRequestMenu();
 		}
 	}
 
@@ -240,6 +315,10 @@ void renderRequestMenu()
 	}
 }
 
+/*
+ *Função que imprime mensagem de erro
+ *@returns void
+ */
 void renderErrorMessage()
 {
 	system("cls");
@@ -249,6 +328,10 @@ void renderErrorMessage()
 	mainMenuRender();
 }
 
+/*
+ *Função que imprime as possíveis opções a serem escolhidas para o tratamento dos dados
+ *@returns void
+ */
 void genericOptionsRender()
 {
 	printf("1.Adicionar\n");
@@ -573,13 +656,17 @@ Product getProductById(int id, bool shouldPrint)
 
 	while (fread(&product, sizeof(Product), 1, productFile))
 	{
-		if (id == product.id && shouldPrint == true)
+		if (product.id == id)
 		{
-			printf("Id: %d | Nome: %s | Descrição: %s | R$ %.2f\n",
-						 product.id,
-						 product.name,
-						 product.desc,
-						 product.price);
+			if (shouldPrint == true)
+			{
+				printf("Id: %d | Nome: %s | Descrição: %s | R$ %.2f\n",
+							 product.id,
+							 product.name,
+							 product.desc,
+							 product.price);
+			}
+			break;
 		}
 	}
 
@@ -609,16 +696,20 @@ RequestItem getRequestItemById(int id, bool shouldPrint)
 
 	while (fread(&requestItem, sizeof(RequestItem), 1, requestItemFile))
 	{
-		if (id == requestItem.id && shouldPrint == true)
+		if (id == requestItem.id)
 		{
-			Product product = getProductById(requestItem.id_product, false);
-			printf("Id: %d | Id do Pedido: %d | Id do Produto: %d | Nome do Produto: %s | Quantidade: %d | R$%.2f\n",
-						 requestItem.id,
-						 requestItem.id_h_product,
-						 requestItem.id_product,
-						 product.name,
-						 requestItem.amount,
-						 requestItem.total_price);
+			if (shouldPrint == true)
+			{
+				Product product = getProductById(requestItem.id_product, false);
+				printf("Id: %d | Id do Pedido: %d | Id do Produto: %d | Nome do Produto: %s | Quantidade: %d | R$%.2f\n",
+							 requestItem.id,
+							 requestItem.id_h_product,
+							 requestItem.id_product,
+							 product.name,
+							 requestItem.amount,
+							 requestItem.total_price);
+			}
+			break;
 		}
 	}
 
@@ -648,12 +739,15 @@ RequestHeader getRequestHeaderById(int id, bool shouldPrint)
 
 	while (fread(&requestHeader, sizeof(RequestHeader), 1, requestHeaderFile))
 	{
-		if (id == requestHeader.id && shouldPrint == true)
+		if (id == requestHeader.id)
 		{
-			printf("Id: %d | Nome do Cliente: %s | R$%.2f\n",
-						 requestHeader.id,
-						 requestHeader.client_name,
-						 requestHeader.total_price);
+			if (shouldPrint == true)
+			{
+				printf("Id: %d | Nome do Cliente: %s | R$%.2f\n",
+							 requestHeader.id,
+							 requestHeader.client_name,
+							 requestHeader.total_price);
+			}
 		}
 	}
 
@@ -701,8 +795,6 @@ int returnLastId(char *fileName, int fileType)
 		idToReturn = requestHeader.id;
 		break;
 	}
-
-	// printf("%d", idToReturn);
 
 	fclose(fileToRead);
 
@@ -1011,7 +1103,7 @@ bool deleteRequestItem(int requestHeaderId, bool deleteAll)
 
 		int confirmation = getch();
 
-		if (confirmation == 49 || confirmation == 13)
+		if (confirmation == 49)
 		{
 			RequestItem requestItem;
 
@@ -1043,6 +1135,7 @@ bool deleteRequestItem(int requestHeaderId, bool deleteAll)
 		}
 		else
 		{
+			remove("temp_file.bin");
 			return false;
 		}
 	}
@@ -1076,7 +1169,6 @@ bool deleteRequestItem(int requestHeaderId, bool deleteAll)
 
 		return true;
 	}
-	return false;
 }
 
 /*
@@ -1093,15 +1185,20 @@ bool deleteRequest()
 
 	system("cls");
 
-	printf("O que deseja deletar?\n\n");
-	printf("1.Pedido\n");
-	printf("2.Item do Pedido\n");
+	int optionSelected = 49;
+	int itensQty = getRequestItensQuantityByHeaderId(requestId);
+	if (itensQty > 1)
+	{
+		printf("O que deseja deletar?\n\n");
+		printf("1.Pedido\n");
+		printf("2.Item do Pedido\n");
 
-	int optionSelected = getch();
+		optionSelected = getch();
+	}
 
 	if (optionSelected != 49)
 	{
-		deleteRequestItem(requestId, false);
+		return deleteRequestItem(requestId, false);
 	}
 	else
 	{
@@ -1154,4 +1251,76 @@ bool deleteRequest()
 		}
 	}
 	return false;
+}
+
+/*
+ * Função que retorna a quantidade itens baseado no id do header
+ * @params int requestHeaderId = Id do header do pedido
+ * @returns int
+ */
+int getRequestItensQuantityByHeaderId(int requestHeaderId)
+{
+	RequestItem requestItem;
+
+	FILE *requestItemFile = fopen("requests_item_data.bin", "r");
+
+	int totalLength = 0;
+
+	while (fread(&requestItem, sizeof(RequestItem), 1, requestItemFile))
+	{
+		printf("%d", requestItem.id);
+		if (requestItem.id_h_product == requestHeaderId)
+		{
+			totalLength++;
+		}
+	}
+
+	fclose(requestItemFile);
+
+	return totalLength;
+}
+
+/*
+ * Função que retorna a quantidade total headers de pedido
+ * @returns int
+ */
+int getRequestHeaderQuantity()
+{
+	RequestHeader requestHeader;
+
+	FILE *requestHeaderFile = fopen("requests_header_data.bin", "r");
+
+	int totalLength = 0;
+
+	while (fread(&requestHeader, sizeof(RequestHeader), 1, requestHeaderFile))
+	{
+		totalLength++;
+	}
+
+	fclose(requestHeaderFile);
+
+	return totalLength;
+}
+
+/*
+ * Função que retorna a quantidade total produtos
+ * @returns int
+ */
+int getProductQuantity()
+{
+	Product product;
+
+	FILE *productFile = fopen("product_data.bin", "r");
+
+	int totalLength = 0;
+
+	while (fread(&product, sizeof(Product), 1, productFile))
+	{
+		printf("%d", product.id);
+		totalLength++;
+	}
+
+	fclose(productFile);
+
+	return totalLength;
 }
