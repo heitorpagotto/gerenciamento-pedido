@@ -52,14 +52,12 @@ bool deleteRequest();
 void genericOptionsRender();
 void renderProductMenu();
 void renderErrorMessage();
+void renderRequestMenu();
 
 int main(void)
 {
 	setlocale(LC_ALL, "Portuguese");
-	// while (1)
-	// {
 	mainMenuRender();
-	// }
 	return 0;
 }
 
@@ -78,6 +76,7 @@ void mainMenuRender()
 
 	if (keyCode == 49)
 	{
+		renderRequestMenu();
 	}
 	if (keyCode == 50)
 	{
@@ -143,6 +142,94 @@ void renderProductMenu()
 		else
 		{
 			renderProductMenu();
+		}
+	}
+
+	if (keyCode == 53)
+	{
+		system("cls");
+		mainMenuRender();
+	}
+}
+
+void renderRequestMenu()
+{
+	printf("Selecione uma ação para executar:\n\n");
+	genericOptionsRender();
+
+	int keyCode = getch();
+
+	system("cls");
+
+	if (keyCode == 49)
+	{
+		saveRequestItems();
+		system("cls");
+		renderRequestMenu();
+	}
+
+	if (keyCode == 50)
+	{
+		readRequestHeaders();
+		printf("\nDeseja ver itens de um pedido?\n\n");
+		printf("1.Sim\n");
+		printf("2.Não\n");
+		int confirmationCode = getch();
+
+		if (confirmationCode == 49)
+		{
+			int requestId;
+			printf("\nInsira o id do pedido: ");
+			scanf("%d", &requestId);
+			system("cls");
+			readRequestItemByHeaderId(requestId);
+			printf("\n\nPressione [ENTER] para retornar...");
+			int enterKey = getch();
+			if (enterKey == 13)
+			{
+				system("cls");
+				renderRequestMenu();
+			}
+		}
+		else
+		{
+			system("cls");
+			renderRequestMenu();
+		}
+	}
+
+	if (keyCode == 51)
+	{
+		readRequestHeaders();
+		printf("\n\nInisira o Id do pedido para editar: ");
+		int requestHeaderId;
+		scanf("%d", &requestHeaderId);
+		system("cls");
+		bool updateResult = updateRequestItem(requestHeaderId);
+		if (updateResult == true)
+		{
+			system("cls");
+			renderRequestMenu();
+		}
+		else
+		{
+			renderErrorMessage();
+			return;
+		}
+	}
+
+	if (keyCode == 52)
+	{
+		bool deleteResult = deleteRequest();
+		if (deleteResult == true)
+		{
+			system("cls");
+			renderRequestMenu();
+		}
+		else
+		{
+			renderErrorMessage();
+			return;
 		}
 	}
 
@@ -448,7 +535,7 @@ void readRequestItemByHeaderId(int headerId)
 
 	while (fread(&requestItem, sizeof(RequestItem), 1, requestItemFile))
 	{
-		if (requestItem.id_h_product = headerId)
+		if (requestItem.id_h_product == headerId)
 		{
 			Product product = getProductById(requestItem.id_product, false);
 			printf("Id: %d | Id Pedido: %d | Id Produto: %d | Nome do Produto: %s | Quantidade: %d | R$%.2f\n",
@@ -686,7 +773,7 @@ bool updateRequestItem(int requestHeaderId)
 	int idReqItem;
 	readRequestItemByHeaderId(requestHeaderId);
 
-	printf("\nInsira o Id do item para editar: ");
+	printf("\n\nInsira o Id do item para editar: ");
 	scanf("%d", &idReqItem);
 
 	system("cls");
